@@ -1,13 +1,65 @@
-# Feature-Transformer
+# Feature Transformer
 
+Feature engineering boilerplate for tabular ML projects. It wraps a scikit-learn `ColumnTransformer` with sensible defaults (imputation, scaling, one-hot encoding) plus optional feature selection, so you can plug it straight into pipelines.
+
+## What you get
+- Automatic numeric/categorical detection (or provide explicit columns)
+- Imputation + scaling for numerics; imputation + one-hot for categoricals
+- Optional SelectKBest for classification/regression tasks
+- Clean feature name access via `get_feature_names_out()`
+- Ready-to-run demo on a small customer segmentation dataset
+
+## Project layout
 ```
 Feature-Transformer/
-    data/
-        raw/
-            customer_segmented.csv
-    feature_transformer/
-        __init__.py
-        transformer.py
-    utils/
-        run.py
+├── data/
+│   └── raw/customer_segments.csv
+├── feature_transformer/
+│   ├── __init__.py
+│   └── transformer.py
+├── utils/run.py
+└── requirements.txt
 ```
+
+## Quickstart
+1) Install deps (ideally in a virtualenv):
+```bash
+pip install -r requirements.txt
+```
+
+2) Run the demo pipeline on the sample data:
+```bash
+python utils/run.py
+```
+You’ll see train/test scores plus the transformed feature names.
+
+## Using the transformer
+```python
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from feature_transformer import FeatureTransformer, FeatureConfig
+
+df = pd.read_csv("data/raw/customer_segments.csv")
+target_col = "cluster_id"
+X = df.drop(columns=[target_col])
+y = df[target_col]
+
+config = FeatureConfig(  # leave None to auto-detect
+    numeric_features=None,
+    categorical_features=None,
+)
+
+pipeline = Pipeline(
+    steps=[
+        ("features", FeatureTransformer(config, task="classification", k_best=None)),
+        ("clf", LogisticRegression(max_iter=1000)),
+    ]
+)
+
+pipeline.fit(X, y)
+print("Feature names:", pipeline.named_steps["features"].get_feature_names_out())
+```
+
+## Data note
+The sample dataset lives at `data/raw/customer_segments.csv` and contains a `cluster_id` target column for the demo. Swap in your own data by pointing the loader to a different CSV and adjusting `target_col`.

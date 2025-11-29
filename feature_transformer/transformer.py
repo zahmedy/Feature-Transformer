@@ -1,3 +1,4 @@
+import inspect
 from typing import Optional, Sequence, Literal
 from dataclasses import dataclass
 
@@ -10,12 +11,14 @@ from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.feature_selection import SelectKBest, f_classif, f_regression
+from sklearn.utils.validation import check_is_fitted
 
 
 TaskType = Literal["classification", "regression"]
 
 @dataclass
 class FeatureConfig:
+    """Optional schema for explicit column selection."""
     numeric_features: Optional[Sequence[str]] = None
     categorical_features: Optional[Sequence[str]] = None
 
@@ -57,13 +60,25 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
         if self.feature_config.numeric_features is None:
             self._numeric_features_ = X.select_dtypes(include=["number"]).columns.tolist()
         else:
+            missing = [col for col in self.feature_config.numeric_features if col not in X.columns]
+            if missing:
+                raise ValueError(f"Numeric feature(s) not found in data: {missing}")
             self._numeric_features_ = list(self.feature_config.numeric_features)
 
         # categorical = everything else (object/string columns)
         if self.feature_config.categorical_features is None:
             self._categorical_features_ = X.select_dtypes(exclude=["number"]).columns.tolist()
         else:
+            missing = [col for col in self.feature_config.categorical_features if col not in X.columns]
+            if missing:
+                raise ValueError(f"Categorical feature(s) not found in data: {missing}")
             self._categorical_features_ = list(self.feature_config.categorical_features)
+
+        if not self._numeric_features_ and not self._categorical_features_:
+            raise ValueError(
+                "No numeric or categorical features detected. "
+                "Provide column names through FeatureConfig or check the input types."
+            )
 
     def _build_preprocessor(self):
         # --- numeric pipeline ---
@@ -77,15 +92,19 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
         numeric_pipeline = Pipeline(steps=num_steps)
 
         # --- categorical pipeline ---
+        encoder_kwargs = {"handle_unknown": self.handle_unknown}
+        # Keep compatibility with scikit-learn <1.2 where sparse_output is unavailable.
+        if "sparse_output" in inspect.signature(OneHotEncoder).parameters:
+            encoder_kwargs["sparse_output"] = False
+        else:
+            encoder_kwargs["sparse"] = False
+
         cat_pipeline = Pipeline(
             steps=[
                 ("imputer", SimpleImputer(strategy="most_frequent")),
                 (
                     "encoder",
-                    OneHotEncoder(
-                        handle_unknown=self.handle_unknown,
-                        sparse_output=False,
-                    ),
+                    OneHotEncoder(**encoder_kwargs),
                 ),
             ]
         )
@@ -123,6 +142,10 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
             raise ValueError("X must be a pandas DataFrame.")
         return X
 
+    def _ensure_fitted(self):
+        """Guard methods that require a fitted pipeline."""
+        check_is_fitted(self, attributes=["_pipeline"])
+
     def fit(self, X: pd.DataFrame, y=None):
         """Fit the internal pipeline on the data."""
         X = self._validate_input(X)
@@ -136,11 +159,15 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
         # 3) fit the internal pipeline
         self._pipeline.fit(X, y)
 
+        # 4) capture feature names after fitting
+        self._feature_names_out = self._compute_feature_names_out()
+
         return self
 
     def transform(self, X: pd.DataFrame) -> np.ndarray:
         """Transform new data using the fitted pipeline."""
         X = self._validate_input(X)
+        self._ensure_fitted()
         return self._pipeline.transform(X)
 
     def fit_transform(self, X: pd.DataFrame, y=None) -> np.ndarray:
@@ -164,6 +191,7 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
 
     def get_feature_names_out(self, input_features=None) -> np.ndarray:
         """Public method: return feature names after fitting."""
+        self._ensure_fitted()
         if self._feature_names_out is None:
             self._feature_names_out = self._compute_feature_names_out()
         return self._feature_names_out
