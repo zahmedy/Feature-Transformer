@@ -1,8 +1,8 @@
 import numpy as np
+from src.transformer import FeatureTransformer
 
 def test_fit_transform_runs(make_df):
     X, y = make_df()
-    from src.transformer import FeatureTransformer
 
     ft = FeatureTransformer()
     Z = ft.fit_transform(X, y)
