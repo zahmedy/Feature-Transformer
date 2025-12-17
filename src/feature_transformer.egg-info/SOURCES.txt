@@ -1,0 +1,12 @@
+README.md
+pyproject.toml
+src/feature_transformer.egg-info/PKG-INFO
+src/feature_transformer.egg-info/SOURCES.txt
+src/feature_transformer.egg-info/dependency_links.txt
+src/feature_transformer.egg-info/requires.txt
+src/feature_transformer.egg-info/top_level.txt
+tests/test_edge_cases.py
+tests/test_invariants.py
+tests/test_schema_drift.py
+tests/test_serialization.py
+tests/test_smoke.py
