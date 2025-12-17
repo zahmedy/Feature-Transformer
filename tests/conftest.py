@@ -8,7 +8,7 @@ def make_df():
         rng = np.random.default_rng(seed)
 
         df = pd.DataFrame({
-            "age": rng.integers(18, 80, size=n).astype("int64")
+            "age": rng.integers(18, 80, size=n).astype("int64"),
             "income": rng.normal(60000, 15000, size=n),
             "city": rng.choice(["NY", "SF", "LA"], size=n),
             "device": rng.choice(["ios", "android"], size=n),
@@ -16,9 +16,12 @@ def make_df():
         })
 
         # inject missingness + weirdness
-        df.loc[rng.choice(n, size=n//10, replace=False), "income"] = np.nan
-        df.loc[rng.choice(n, size=n//12), replace=False, "city"] = None
-        df.loc[rng.choice(n, size=n//20, replace=False), "age"] = None # becomes float column
+        missing_idx = rng.choice(n, size=n//10, replace=False).tolist()
+        df.loc[missing_idx, "income"] = np.nan
+        missing_idx = rng.choice(n, size=n//12, replace=False).tolist()
+        df.loc[missing_idx, "city"] = None
+        missing_idx = rng.choice(n, size=n//20, replace=False).tolist()
+        df.loc[missing_idx, "age"] = None # becomes float column
 
         # target (for leakage checks)
         y = (df["income"].fillna(df["income"].median()) > 60000).astype(int)
