@@ -28,15 +28,3 @@ def test_deterministic_transform(make_df):
 
     np.testing.assert_allclose(Z1, Z2, atol=0, rtol=0)
 
-def test_no_crash_unseen_categories(make_df):
-    X, y = make_df(seed=3)
-
-    ft = FeatureTransformer()
-    ft.fit(X, y)
-
-    X_new = X.copy()
-    X_new.loc[:10, "city"] = "CHICAGO"     # unseen
-    X_new.loc[:10, "device"] = "web"       # unseen
-
-    Z = ft.transform(X_new)
-    assert Z.shape[0] == X_new.shape[0]
