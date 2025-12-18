@@ -191,13 +191,6 @@ flowchart TD
   H --> G
   G --> I[Downstream sklearn Estimator]
   I --> J[Predictions]
-
-  subgraph Production Guarantees
-    P1[Missing columns → ValueError ^strict schema^]
-    P2[Unseen categories → no crash + fixed feature dimension]
-    P3[No NaNs after transform]
-    P4[Column order invariance]
-    P5[joblib round-trip identical output]
   end
   ```
 
