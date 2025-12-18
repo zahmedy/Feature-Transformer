@@ -191,7 +191,6 @@ flowchart TD
   H --> G
   G --> I[Downstream sklearn Estimator]
   I --> J[Predictions]
-  end
   ```
 
 
