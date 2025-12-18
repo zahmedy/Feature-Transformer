@@ -178,22 +178,22 @@ The demo script trains a classifier on sample customer segmentation data and dis
 ## Architecture diagram
 ```mermaid
 flowchart TD
-  A[Raw pandas DataFrame X] --> B[FeatureTransformer.fit(X, y)]
+  A[Raw pandas DataFrame X] --> B[FeatureTransformer.fit<X, y>]
   B --> C[Build column schema<br/>• explicit FeatureConfig<br/>• dtype auto-detect fallback]
   C --> D[ColumnTransformer]
-  D --> N[Numeric pipeline<br/>Imputer → Scaler (optional)]
-  D --> K[Categorical pipeline<br/>Imputer → OneHotEncoder(handle_unknown=ignore)]
+  D --> N[Numeric pipeline<br/>Imputer → Scaler <optional>]
+  D --> K[Categorical pipeline<br/>Imputer → OneHotEncoder<handle_unknown=ignore>]
   N --> E[Concatenate features]
   K --> E
   E --> F{SelectKBest?}
   F -- No --> G[ndarray features Xt]
-  F -- Yes --> H[SelectKBest<br/>(f_classif / f_regression)]
+  F -- Yes --> H[SelectKBest<br/><f_classif / f_regression>]
   H --> G
   G --> I[Downstream sklearn Estimator]
   I --> J[Predictions]
 
-  subgraph Production Guarantees (tested)
-    P1[Missing columns → ValueError (strict schema)]
+  subgraph Production Guarantees <tested>
+    P1[Missing columns → ValueError <strict schema>]
     P2[Unseen categories → no crash + fixed feature dimension]
     P3[No NaNs after transform]
     P4[Column order invariance]
